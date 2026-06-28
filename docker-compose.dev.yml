@@ -40,8 +40,9 @@ services:
       - "traefik.http.routers.laravel-web.entrypoints=websecure"
       - "traefik.http.services.laravel-web.loadbalancer.server.port=8443"
       - "traefik.http.services.laravel-web.loadbalancer.server.scheme=https"
-  # Builds the Argus React SPA into public/argus. One-shot by default; flip the
-  # command to `npm run dev` if you want Vite HMR (served same-origin via Laravel).
+  # Builds the Argus React SPA (in ui/) into public/argus, served same-origin by
+  # Laravel. The whole project is mounted so Vite's outDir (../public/argus) lands
+  # in the Laravel public directory. Run once with: spin run -T node sh -c "npm ci && npm run build"
   node:
     build:
       target: development
@@ -50,9 +51,13 @@ services:
         GROUP_ID: ${SPIN_GROUP_ID}
       dockerfile: Dockerfile.node
     command: sh -c "npm ci && npm run build"
+    environment:
+      # The SPA mounts under /argus, same origin as the /argus-api routes.
+      ARGUS_UI_BASE: /argus/
+      VITE_ARGUS_API_BASE: /argus-api
     volumes:
-      - ./ui:/usr/src/app/
-    working_dir: /usr/src/app/
+      - .:/usr/src/app/
+    working_dir: /usr/src/app/ui
     networks:
       - development
   schedule:
