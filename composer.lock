@@ -215,7 +215,7 @@
             "dist": {
                 "type": "path",
                 "url": "../argus-api",
-                "reference": "1db29a55e0b849613037b94ab595613ba942e1d3"
+                "reference": "dcbf41806175f85f3e9f15c1781a0f8115741e1a"
             },
             "require": {
                 "codysseydev/argus": "^0.1",

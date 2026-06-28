@@ -11,6 +11,34 @@ export function useSavedSearchAlertRules(ssid: string) {
   });
 }
 
+/** Every alert rule across every saved search (the global Alerts screen). */
+export function useAllAlertRules() {
+  const c = useApiClient();
+  return useQuery({
+    queryKey: ['alert-rules', 'all'],
+    queryFn: () => c.listAlertRules(),
+  });
+}
+
+/** Recent firings across every rule, most recent first. */
+export function useRecentFirings(limit = 100) {
+  const c = useApiClient();
+  return useQuery({
+    queryKey: ['alert-firings', 'recent', limit],
+    queryFn: () => c.getRecentFirings(limit),
+  });
+}
+
+/** Firing history for one rule, most recent first. */
+export function useAlertRuleFirings(ruleId: string, limit = 100) {
+  const c = useApiClient();
+  return useQuery({
+    queryKey: ['alert-firings', ruleId, limit],
+    queryFn: () => c.getAlertRuleFirings(ruleId, limit),
+    enabled: !!ruleId,
+  });
+}
+
 export function useCreateAlertRule(ssid: string) {
   const c = useApiClient();
   const qc = useQueryClient();

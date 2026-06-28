@@ -1,5 +1,5 @@
 .DEFAULT_GOAL := help
-.PHONY: help up down restart fresh seed simulate ui logs ps shell horizon
+.PHONY: help up down restart fresh seed simulate alerts demo ui logs ps shell horizon
 
 help: ## List available targets
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-12s\033[0m %s\n", $$1, $$2}'
@@ -20,6 +20,14 @@ seed: ## Seed the demo user
 
 simulate: ## Dispatch demo queue traffic (override count: make simulate JOBS=500)
 	spin exec -T php php artisan argus-demo:simulate --jobs=$(or $(JOBS),240)
+
+alerts: ## Run the alert evaluator once (checks all rules and fires any that breach)
+	spin exec -T php php artisan argus:evaluate-alerts
+
+demo: ## Seed, simulate traffic, and evaluate alerts in one shot
+	$(MAKE) seed
+	$(MAKE) simulate
+	$(MAKE) alerts
 
 ui: ## Rebuild the Argus SPA into public/argus
 	spin run -T node npm ci

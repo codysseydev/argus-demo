@@ -5,6 +5,7 @@ import { Pagination } from '../components/Pagination';
 import { ResultsTable } from '../components/ResultsTable';
 import { QueryState } from '../components/query/QueryState';
 import { inputCls } from '../lib/formStyles';
+import { btnGhost, card } from '../lib/ui';
 import { useSearch } from '../hooks/useSearch';
 
 const PAGE_SIZES = [50, 100, 250, 500];
@@ -33,17 +34,15 @@ export function SearchScreen() {
   };
 
   return (
-    <div className="flex flex-col gap-4 p-4">
-      <FilterBuilder value={form} onApply={(f) => setParams(formToParams(f))} />
+    <div className="flex flex-col gap-4">
+      <div className={card}>
+        <FilterBuilder value={form} onApply={(f) => setParams(formToParams(f))} />
+      </div>
 
       <div className="flex items-center justify-between gap-3">
-        <label className="flex items-center gap-2 text-xs font-medium text-slate-600">
+        <label className="flex items-center gap-2 text-xs font-medium text-blue-40">
           Page size
-          <select
-            className={inputCls}
-            value={limit}
-            onChange={(e) => navParams(0, Number(e.target.value))}
-          >
+          <select className={inputCls} value={limit} onChange={(e) => navParams(0, Number(e.target.value))}>
             {PAGE_SIZES.map((n) => (
               <option key={n} value={n}>
                 {n}
@@ -51,26 +50,17 @@ export function SearchScreen() {
             ))}
           </select>
         </label>
-        <button
-          type="button"
-          className="rounded border border-slate-300 px-3 py-1.5 text-sm font-medium text-slate-700 hover:bg-slate-50"
-          onClick={() => navigate('/saved-searches', { state: { form } })}
-        >
+        <button type="button" className={btnGhost} onClick={() => navigate('/saved-searches', { state: { form } })}>
           Save as search
         </button>
       </div>
 
       <QueryState query={q} isEmpty={(r) => r.jobs.length === 0} emptyMessage="No jobs match this filter.">
         {(r) => (
-          <>
+          <div className={`${card} flex flex-col gap-3`}>
             <ResultsTable jobs={r.jobs} highlightFingerprint={fp} />
-            <Pagination
-              total={r.total}
-              limit={r.limit}
-              offset={r.offset}
-              onPage={(pg) => navParams(pg, limit)}
-            />
-          </>
+            <Pagination total={r.total} limit={r.limit} offset={r.offset} onPage={(pg) => navParams(pg, limit)} />
+          </div>
         )}
       </QueryState>
     </div>

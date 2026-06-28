@@ -1,4 +1,5 @@
 import type {
+  AlertFiring,
   AlertRule,
   FailureGroup,
   JobSummary,
@@ -129,6 +130,9 @@ export function alertRule(overrides: Partial<AlertRule> = {}): AlertRule {
     savedSearchId: 'ss-1',
     name: 'too-many-failed-emails',
     threshold: 50,
+    conditionType: 'count',
+    comparison: 'gt',
+    stuckSeconds: null,
     windowSeconds: 900,
     cooldownSeconds: 1800,
     sinks: ['slack'],
@@ -139,6 +143,19 @@ export function alertRule(overrides: Partial<AlertRule> = {}): AlertRule {
     lastEvaluatedAt: '2026-05-31T10:05:00+00:00',
     createdAt: '2026-05-30T08:00:00+00:00',
     updatedAt: '2026-05-31T10:05:00+00:00',
+    ...overrides,
+  };
+}
+
+export function alertFiring(overrides: Partial<AlertFiring> = {}): AlertFiring {
+  return {
+    id: 1,
+    alertRuleId: 'ar-1',
+    conditionType: 'count',
+    observedValue: 73,
+    threshold: 50,
+    windowSeconds: 900,
+    firedAt: '2026-05-31T10:05:00+00:00',
     ...overrides,
   };
 }

@@ -109,6 +109,28 @@ describe('ArgusApiClient resource methods', () => {
       sinks: ['slack'],
     });
   });
+  it('getRecentFirings GETs /alert-firings with the limit query', async () => {
+    const { client, fetchMock } = makeClient(() => jsonResponse(200, { data: [], meta: { count: 0 } }));
+    await client.getRecentFirings(25);
+    const [url, init] = fetchMock.mock.calls[0] as [string, RequestInit];
+    expect(url).toBe('/argus-api/alert-firings?limit=25');
+    expect(init.method).toBe('GET');
+  });
+  it('getRecentFirings omits the limit query when none is given', async () => {
+    const { client, fetchMock } = makeClient(() => jsonResponse(200, { data: [], meta: { count: 0 } }));
+    await client.getRecentFirings();
+    expect((fetchMock.mock.calls[0] as [string, RequestInit])[0]).toBe('/argus-api/alert-firings');
+  });
+  it('getRecentFirings keeps limit=0 in the query (not dropped as falsy)', async () => {
+    const { client, fetchMock } = makeClient(() => jsonResponse(200, { data: [], meta: { count: 0 } }));
+    await client.getRecentFirings(0);
+    expect((fetchMock.mock.calls[0] as [string, RequestInit])[0]).toBe('/argus-api/alert-firings?limit=0');
+  });
+  it('getAlertRuleFirings encodes the rule id into the path', async () => {
+    const { client, fetchMock } = makeClient(() => jsonResponse(200, { data: [], meta: { count: 0 } }));
+    await client.getAlertRuleFirings('r/1', 10);
+    expect((fetchMock.mock.calls[0] as [string, RequestInit])[0]).toBe('/argus-api/alert-rules/r%2F1/firings?limit=10');
+  });
   it('createSavedSearch sends { name, filter } and parses the 201 body', async () => {
     const { client, fetchMock } = makeClient(() =>
       jsonResponse(201, { data: { id: 'ss9', name: 'n', filter: {} }, meta: {} }),

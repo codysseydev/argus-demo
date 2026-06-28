@@ -1,5 +1,6 @@
-/** Shared Tailwind class strings for form fields, used by every form component. */
+// Shared form-control classes, dark theme borrowed from codyssey-frontend.
 export const inputCls =
-  'rounded border border-slate-300 px-2 py-1 text-sm focus:border-blue-500 focus:outline-none';
-export const labelCls = 'flex flex-col gap-1 text-xs font-medium text-slate-600';
-export const errorCls = 'text-xs text-red-600';
+  'rounded-lg border border-blue-20 bg-blue-15 px-3 py-2 text-sm text-white-whisper ' +
+  'placeholder:text-blue-40 focus:border-blue-royalty focus:outline-none focus:ring-1 focus:ring-blue-royalty';
+export const labelCls = 'flex flex-col gap-1 text-xs font-medium text-blue-40';
+export const errorCls = 'text-xs text-red-300';

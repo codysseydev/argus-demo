@@ -78,8 +78,11 @@ Then open the dashboard and sign in:
 - **Failures** (`/argus/failures`) — failures grouped by exception fingerprint.
   The demo produces three distinct fingerprints (payment declined, CRM
   unavailable, avatar processing).
-- **Saved searches / alerts** (`/argus/saved-searches`) — create saved searches
-  and attach threshold alert rules.
+- **Saved searches / alerts** (`/argus/saved-searches`) — the seeder pre-populates
+  four saved searches (Billing failures, CRM failures, Slow reports, All failures)
+  and four alert rules across all condition types (COUNT, FAILURE_RATE, LATENCY_P95,
+  STUCK_COUNT). The "Billing failure count" COUNT rule has a threshold of 1, so it
+  breaches the moment a single billing job fails.
 
 Horizon's own dashboard is at `https://localhost:8443/horizon`.
 
@@ -102,12 +105,30 @@ Horizon's own dashboard is at `https://localhost:8443/horizon`.
 
 ```bash
 make simulate JOBS=500   # more traffic
+make alerts              # run the alert evaluator once (fires any breaching rules)
+make demo                # seed + simulate + evaluate alerts in one shot
 make fresh               # wipe recorded jobs and re-seed
 make ui                  # rebuild the SPA into public/argus
 make logs                # tail all services
 make horizon             # Horizon status
 make down                # stop everything
 ```
+
+### Making an alert fire
+
+The seeder attaches alert rules to the pre-seeded saved searches. To see an alert
+appear in the firing history:
+
+1. Run `make simulate` to dispatch demo jobs. Horizon workers and `argus:ship` drain
+   them into Postgres. Give them a few seconds to process (watch Horizon at
+   `/horizon`).
+2. Run `make alerts` to trigger the evaluator. It checks every rule and records a
+   firing for any rule whose threshold is breached.
+3. Reload the Saved searches screen — the "Billing failure count" rule (threshold 1,
+   billing queue) will have fired because the simulator produces billing failures
+   on every run.
+
+`make demo` chains all three steps in order.
 
 The demo jobs live in `app/Jobs/Demo/`, the simulator in
 `app/Console/Commands/SimulateTraffic.php`.

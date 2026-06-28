@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { type FilterFormState, toLocalInput, validateForm } from '../api/filter';
 import { TRANSITION_TYPES } from '../api/types';
 import { errorCls, inputCls, labelCls } from '../lib/formStyles';
+import { btnGhost, btnPrimary } from '../lib/ui';
 
 interface Props {
   value: FilterFormState;
@@ -167,22 +168,13 @@ export function FilterBuilder({ value, onApply, applyLabel = 'Apply' }: Props) {
       </div>
 
       <div className="flex flex-wrap items-center gap-2">
-        <span className="text-xs font-medium text-slate-500">Window:</span>
+        <span className="text-xs font-medium text-blue-40">Window:</span>
         {QUICK_PICKS.map((q) => (
-          <button
-            key={q.label}
-            type="button"
-            className="rounded border border-slate-300 px-2 py-1 text-xs font-medium text-slate-700 hover:bg-slate-50"
-            onClick={() => applyQuickPick(q.ms)}
-          >
+          <button key={q.label} type="button" className={btnGhost} onClick={() => applyQuickPick(q.ms)}>
             {q.label}
           </button>
         ))}
-        <button
-          type="button"
-          className="ml-auto rounded bg-blue-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-blue-700"
-          onClick={apply}
-        >
+        <button type="button" className={`ml-auto ${btnPrimary}`} onClick={apply}>
           {applyLabel}
         </button>
       </div>

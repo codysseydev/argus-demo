@@ -8,6 +8,7 @@ import { QueryState } from '../components/query/QueryState';
 import { MutationError } from '../components/query/states';
 import { ResultsTable } from '../components/ResultsTable';
 import { SavedSearchForm } from '../components/SavedSearchForm';
+import { card, pageHeading, sectionHeading } from '../lib/ui';
 import {
   useCreateAlertRule,
   useDeleteAlertRule,
@@ -50,53 +51,63 @@ export function SavedSearchScreen() {
   return (
     <QueryState query={q} notFoundMessage="Saved search not found.">
       {(ss) => (
-        <div className="flex flex-col gap-6 p-4">
+        <div className="flex flex-col gap-6">
           <section className="flex flex-col gap-3">
-            <h1 className="text-lg font-semibold text-slate-800">{ss.name}</h1>
-            <SavedSearchForm
-              initialName={ss.name}
-              initialFilter={ss.filter}
-              submitting={upd.isPending}
-              errors={validationErrorsOf(upd.error)}
-              onSubmit={(v) => upd.mutate({ id: ss.id, input: v })}
-            />
+            <h1 className={pageHeading}>{ss.name}</h1>
+            <div className={card}>
+              <SavedSearchForm
+                initialName={ss.name}
+                initialFilter={ss.filter}
+                submitting={upd.isPending}
+                errors={validationErrorsOf(upd.error)}
+                onSubmit={(v) => upd.mutate({ id: ss.id, input: v })}
+              />
+            </div>
             <MutationError error={upd.error} />
           </section>
 
           <section className="flex flex-col gap-3">
-            <h2 className="text-base font-semibold text-slate-800">Current matches</h2>
+            <h2 className={sectionHeading}>Current matches</h2>
             <QueryState
               query={results}
               isEmpty={(jobs) => jobs.length === 0}
               emptyMessage="This saved search matches no jobs right now."
             >
-              {(jobs) => <ResultsTable jobs={jobs} />}
+              {(jobs) => (
+                <div className={card}>
+                  <ResultsTable jobs={jobs} />
+                </div>
+              )}
             </QueryState>
           </section>
 
           <section className="flex flex-col gap-3">
-            <h2 className="text-base font-semibold text-slate-800">Alert rules</h2>
+            <h2 className={sectionHeading}>Alert rules</h2>
             <QueryState query={rq} isEmpty={(r) => r.length === 0} emptyMessage="No alert rules.">
               {(rules) => (
-                <AlertRuleList
-                  rules={rules}
-                  // Clear any stale create error so it can't reappear after this edit.
-                  onEdit={(rule) => {
-                    createRule.reset();
-                    setEditing(rule);
-                  }}
-                  onDelete={(rid) => delRule.mutate(rid)}
-                />
+                <div className={card}>
+                  <AlertRuleList
+                    rules={rules}
+                    // Clear any stale create error so it can't reappear after this edit.
+                    onEdit={(rule) => {
+                      createRule.reset();
+                      setEditing(rule);
+                    }}
+                    onDelete={(rid) => delRule.mutate(rid)}
+                  />
+                </div>
               )}
             </QueryState>
             <MutationError error={delRule.error} />
-            <AlertRuleForm
-              key={editing ? editing.id : `new-${newFormNonce}`}
-              initial={editing}
-              submitting={createRule.isPending || updRule.isPending}
-              errors={validationErrorsOf(ruleError)}
-              onSubmit={submitRule}
-            />
+            <div className={card}>
+              <AlertRuleForm
+                key={editing ? editing.id : `new-${newFormNonce}`}
+                initial={editing}
+                submitting={createRule.isPending || updRule.isPending}
+                errors={validationErrorsOf(ruleError)}
+                onSubmit={submitRule}
+              />
+            </div>
             <MutationError error={ruleError} />
           </section>
         </div>
