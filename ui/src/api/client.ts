@@ -1,5 +1,6 @@
 import { ApiError, type ApiErrorType } from './errors';
 import type {
+  AlertFiring,
   AlertRule,
   AlertRuleInput,
   FailureGroup,
@@ -32,6 +33,8 @@ export interface ArgusApiClient {
   getAlertRule(id: string): Promise<AlertRule>;
   updateAlertRule(id: string, input: AlertRuleInput): Promise<AlertRule>;
   deleteAlertRule(id: string): Promise<void>;
+  getRecentFirings(limit?: number): Promise<AlertFiring[]>;
+  getAlertRuleFirings(id: string, limit?: number): Promise<AlertFiring[]>;
 }
 
 export interface ClientOptions {
@@ -134,5 +137,9 @@ export function createArgusApiClient(opts: ClientOptions = {}): ArgusApiClient {
     deleteAlertRule: async (id) => {
       await request<void>('DELETE', `/alert-rules/${enc(id)}`);
     },
+    getRecentFirings: (limit) =>
+      data<AlertFiring[]>('GET', `/alert-firings${limit !== undefined ? `?limit=${limit}` : ''}`),
+    getAlertRuleFirings: (id, limit) =>
+      data<AlertFiring[]>('GET', `/alert-rules/${enc(id)}/firings${limit !== undefined ? `?limit=${limit}` : ''}`),
   };
 }

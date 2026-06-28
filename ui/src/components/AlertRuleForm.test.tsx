@@ -49,10 +49,48 @@ describe('AlertRuleForm', () => {
     expect(onSubmit).toHaveBeenCalledWith({
       name: 'spike',
       threshold: 10,
+      conditionType: 'count',
+      comparison: 'gt',
+      stuckSeconds: null,
       windowSeconds: 900,
       cooldownSeconds: 1800,
       sinks: ['slack', 'webhook'],
       enabled: true,
     });
+  });
+
+  it('submits the chosen condition type and comparison', async () => {
+    const user = userEvent.setup();
+    const onSubmit = vi.fn();
+    render(<AlertRuleForm onSubmit={onSubmit} />);
+
+    await user.type(screen.getByLabelText('Rule name'), 'slow');
+    await user.selectOptions(screen.getByLabelText('Condition'), 'latency_p95');
+    await user.selectOptions(screen.getByLabelText('Comparison'), 'gt');
+    await user.type(screen.getByLabelText('Threshold'), '2000');
+    await user.type(screen.getByLabelText('Window (seconds)'), '300');
+    await user.type(screen.getByLabelText('Cooldown (seconds)'), '600');
+    await user.click(screen.getByRole('button', { name: 'Add rule' }));
+
+    expect(onSubmit).toHaveBeenCalledTimes(1);
+    expect(onSubmit).toHaveBeenCalledWith(
+      expect.objectContaining({ conditionType: 'latency_p95', comparison: 'gt', threshold: 2000, stuckSeconds: null }),
+    );
+  });
+
+  it('requires a stuck age when the condition is stuck_count', async () => {
+    const user = userEvent.setup();
+    const onSubmit = vi.fn();
+    render(<AlertRuleForm onSubmit={onSubmit} />);
+
+    await user.type(screen.getByLabelText('Rule name'), 'stuck');
+    await user.selectOptions(screen.getByLabelText('Condition'), 'stuck_count');
+    await user.type(screen.getByLabelText('Threshold'), '5');
+    await user.type(screen.getByLabelText('Window (seconds)'), '300');
+    await user.type(screen.getByLabelText('Cooldown (seconds)'), '600');
+    await user.click(screen.getByRole('button', { name: 'Add rule' }));
+
+    expect(screen.getByText(/Stuck age must be/i)).toBeInTheDocument();
+    expect(onSubmit).not.toHaveBeenCalled();
   });
 });

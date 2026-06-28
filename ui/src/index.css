@@ -3,9 +3,19 @@
 @tailwind utilities;
 
 :root {
-  color-scheme: light dark;
+  /* The dashboard is a fixed dark theme; tell the browser so native controls
+     (selects, date pickers, scrollbars) render dark too. */
+  color-scheme: dark;
 }
 
-body {
-  margin: 0;
+@layer base {
+  body {
+    margin: 0;
+    background-color: hsl(247 77% 9%);
+    color: hsl(120 3% 92%);
+    font-family: theme('fontFamily.sans');
+    text-rendering: optimizeLegibility;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
 }

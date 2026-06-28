@@ -1,6 +1,23 @@
 export type Iso8601 = string;
 export type TransitionType = 'queued' | 'processing' | 'processed' | 'failed' | 'released';
 export type AlertState = 'ok' | 'breaching';
+export type AlertConditionType = 'count' | 'failure_rate' | 'stuck_count' | 'latency_p95';
+export type AlertComparison = 'gt' | 'lt';
+
+export const ALERT_CONDITION_TYPES: readonly AlertConditionType[] = [
+  'count',
+  'failure_rate',
+  'stuck_count',
+  'latency_p95',
+] as const;
+
+/** Human labels + the unit each condition's threshold is measured in. */
+export const ALERT_CONDITION_LABELS: Record<AlertConditionType, string> = {
+  count: 'Match count',
+  failure_rate: 'Failure rate (%)',
+  stuck_count: 'Stuck count',
+  latency_p95: 'Latency p95 (ms)',
+};
 
 export const TRANSITION_TYPES: readonly TransitionType[] = [
   'queued',
@@ -71,6 +88,9 @@ export interface AlertRule {
   savedSearchId: string;
   name: string;
   threshold: number;
+  conditionType: AlertConditionType;
+  comparison: AlertComparison;
+  stuckSeconds: number | null;
   windowSeconds: number;
   cooldownSeconds: number;
   sinks: string[];
@@ -86,10 +106,24 @@ export interface AlertRule {
 export interface AlertRuleInput {
   name: string;
   threshold: number;
+  conditionType?: AlertConditionType;
+  comparison?: AlertComparison;
+  stuckSeconds?: number | null;
   windowSeconds: number;
   cooldownSeconds: number;
   sinks: string[];
   enabled?: boolean;
+}
+
+/** One recorded breach of an alert rule (append-only firing history). */
+export interface AlertFiring {
+  id: number;
+  alertRuleId: string;
+  conditionType: AlertConditionType;
+  observedValue: number;
+  threshold: number;
+  windowSeconds: number;
+  firedAt: Iso8601;
 }
 
 export interface SavedSearchInput {

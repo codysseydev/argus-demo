@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom';
 import type { JobSummary } from '../api/types';
 import { formatDateTime, formatDuration, shortFingerprint } from '../lib/format';
+import { tableCls, tbodyRowCls, tdCls, theadRowCls, thCls } from '../lib/ui';
 import { StatusBadge } from './StatusBadge';
 
 interface Props {
@@ -23,55 +24,53 @@ const HEADERS = [
 /** Dense, unsorted table of job summaries; rows link to the job detail screen. */
 export function ResultsTable({ jobs, highlightFingerprint }: Props) {
   return (
-    <table className="w-full border-collapse text-sm">
-      <thead>
-        <tr className="border-b border-slate-200 text-left text-xs uppercase tracking-wide text-slate-500">
-          {HEADERS.map((h) => (
-            <th key={h} className="px-2 py-1.5 font-medium">
-              {h}
-            </th>
-          ))}
-        </tr>
-      </thead>
-      <tbody>
-        {jobs.map((job) => {
-          const highlighted =
-            highlightFingerprint != null && job.exceptionFingerprint === highlightFingerprint;
-          return (
-            <tr
-              key={job.jobUuid}
-              data-inflight={job.inFlight ? 'true' : undefined}
-              data-highlight={highlighted ? 'true' : undefined}
-              className={`border-b border-slate-100 ${highlighted ? 'bg-amber-50' : ''}`}
-            >
-              <td className="px-2 py-1.5">
-                <Link
-                  to={`/jobs/${encodeURIComponent(job.jobUuid)}`}
-                  className="font-mono text-blue-700 hover:underline"
-                >
-                  {job.jobUuid}
-                </Link>
-              </td>
-              <td className="px-2 py-1.5 font-mono text-xs text-slate-700">{job.jobClass}</td>
-              <td className="px-2 py-1.5">{job.queue}</td>
-              <td className="px-2 py-1.5">{job.tenantId ?? '—'}</td>
-              <td className="px-2 py-1.5">
-                <StatusBadge status={job.status} inFlight={job.inFlight} />
-              </td>
-              <td className="px-2 py-1.5 tabular-nums">{job.attempts}</td>
-              <td className="px-2 py-1.5 whitespace-nowrap text-slate-600">
-                {formatDateTime(job.dispatchedAt)}
-              </td>
-              <td className="px-2 py-1.5 tabular-nums text-slate-600">
-                {formatDuration(job.durationMs)}
-              </td>
-              <td className="px-2 py-1.5 font-mono text-xs text-slate-600">
-                {shortFingerprint(job.exceptionFingerprint)}
-              </td>
-            </tr>
-          );
-        })}
-      </tbody>
-    </table>
+    <div className="overflow-x-auto">
+      <table className={tableCls}>
+        <thead>
+          <tr className={theadRowCls}>
+            {HEADERS.map((h) => (
+              <th key={h} className={thCls}>
+                {h}
+              </th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {jobs.map((job) => {
+            const highlighted =
+              highlightFingerprint != null && job.exceptionFingerprint === highlightFingerprint;
+            return (
+              <tr
+                key={job.jobUuid}
+                data-inflight={job.inFlight ? 'true' : undefined}
+                data-highlight={highlighted ? 'true' : undefined}
+                className={`${tbodyRowCls} ${highlighted ? 'bg-amber-500/10' : ''}`}
+              >
+                <td className={tdCls}>
+                  <Link
+                    to={`/jobs/${encodeURIComponent(job.jobUuid)}`}
+                    className="font-mono text-blue-periwinkle hover:underline"
+                  >
+                    {job.jobUuid}
+                  </Link>
+                </td>
+                <td className={`${tdCls} font-mono text-xs text-blue-40`}>{job.jobClass}</td>
+                <td className={tdCls}>{job.queue}</td>
+                <td className={tdCls}>{job.tenantId ?? '—'}</td>
+                <td className={tdCls}>
+                  <StatusBadge status={job.status} inFlight={job.inFlight} />
+                </td>
+                <td className={`${tdCls} tabular-nums`}>{job.attempts}</td>
+                <td className={`${tdCls} whitespace-nowrap text-blue-40`}>{formatDateTime(job.dispatchedAt)}</td>
+                <td className={`${tdCls} tabular-nums text-blue-40`}>{formatDuration(job.durationMs)}</td>
+                <td className={`${tdCls} font-mono text-xs text-blue-40`}>
+                  {shortFingerprint(job.exceptionFingerprint)}
+                </td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
+    </div>
   );
 }

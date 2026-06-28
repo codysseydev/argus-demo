@@ -1,5 +1,6 @@
 import { http, HttpResponse } from 'msw';
 import {
+  alertFiring,
   alertRule,
   completedHistory,
   failureGroup,
@@ -38,7 +39,11 @@ export const handlers = [
   http.put('*/argus-api/saved-searches/:id', ({ params }) => ok(savedSearch({ id: String(params.id), name: 'updated' }))),
   http.delete('*/argus-api/saved-searches/:id', () => new HttpResponse(null, { status: 204 })),
 
+  http.get('*/argus-api/alert-firings', () => ok([alertFiring()], { count: 1 })),
   http.get('*/argus-api/alert-rules', () => ok([alertRule()], { count: 1 })),
+  http.get('*/argus-api/alert-rules/:id/firings', ({ params }) =>
+    ok([alertFiring({ alertRuleId: String(params.id) })], { alertRuleId: params.id, count: 1 }),
+  ),
   http.get('*/argus-api/alert-rules/:id', ({ params }) => ok(alertRule({ id: String(params.id) }))),
   http.put('*/argus-api/alert-rules/:id', ({ params }) => ok(alertRule({ id: String(params.id) }))),
   http.delete('*/argus-api/alert-rules/:id', () => new HttpResponse(null, { status: 204 })),
