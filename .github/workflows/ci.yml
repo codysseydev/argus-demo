@@ -1,0 +1,46 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  ui:
+    name: UI (typecheck, test, build)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ui
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: ui/package-lock.json
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm test
+      - run: ARGUS_UI_BASE=/argus/ VITE_ARGUS_API_BASE=/argus-api npm run build
+
+  composer:
+    name: Composer (validate, lint)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.5'
+          tools: composer
+      # The PHP packages come from sibling path repos; fetch them so composer can
+      # resolve. Skip post-install scripts (package:discover would try to reach the
+      # Postgres/Valkey services, which only exist in the Docker stack).
+      - name: Check out sibling Argus packages
+        run: |
+          git clone --depth 1 https://github.com/codysseydev/argus.git ../argus
+          git clone --depth 1 https://github.com/codysseydev/argus-api.git ../argus-api
+      - run: composer validate --no-check-publish
+      - run: composer install --no-interaction --no-scripts --prefer-dist
+      - name: Lint (Pint)
+        run: vendor/bin/pint --test

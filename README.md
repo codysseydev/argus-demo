@@ -1,58 +1,136 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# Argus Demo
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+A runnable Laravel application that wires the three Argus packages together so you
+can see queue observability working in a browser:
 
-## About Laravel
+| Package | Repo | Role |
+|---------|------|------|
+| `codysseydev/argus` | [argus](https://github.com/codysseydev/argus) | Core library: records the lifecycle of every queued job into Postgres. No HTTP, no UI. |
+| `codysseydev/argus-api` | [argus-api](https://github.com/codysseydev/argus-api) | JSON HTTP API over the core's query service, mounted at `/argus-api`. |
+| `@codysseydev/argus-ui` | [argus-ui](https://github.com/codysseydev/argus-ui) | React SPA (vendored here in `ui/`), served at `/argus`. |
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+None of those three runs on its own; they are libraries that need a host app. This
+repo is that host, plus demo jobs and a traffic simulator so every screen has real
+data to show.
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+```
+React SPA (/argus)  ->  argus-api (/argus-api)  ->  argus core  ->  Postgres
+   served by Laravel       JSON over HTTP            query service     (store)
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
-
-## Learning Laravel
-
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework.
-
-In addition, [Laracasts](https://laracasts.com) contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
-
-You can also watch bite-sized lessons with real-world projects on [Laravel Learn](https://laravel.com/learn), where you will be guided through building a Laravel application from scratch while learning PHP fundamentals.
-
-## Agentic Development
-
-Laravel's predictable structure and conventions make it ideal for AI coding agents like Claude Code, Cursor, and GitHub Copilot. Install [Laravel Boost](https://laravel.com/docs/ai) to supercharge your AI workflow:
-
-```bash
-composer require laravel/boost --dev
-
-php artisan boost:install
+queued jobs  ->  Horizon workers  ->  Argus captures queue events  ->  Valkey buffer
+                                                                          |
+                                                          argus:ship drains to Postgres
 ```
 
-Boost provides your agent 15+ tools and skills that help agents build Laravel applications while following best practices.
+The whole stack runs in Docker via [Spin](https://serversideup.net/open-source/spin/):
+Traefik, PHP, Postgres 18, Valkey 9, Horizon (queue), the Argus shipper, and the
+Laravel scheduler.
 
-## Contributing
+## Prerequisites
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+- Docker (Docker Desktop or OrbStack) running
+- [Spin](https://serversideup.net/open-source/spin/) installed (`spin` on your PATH)
+- The three Argus repos cloned **as siblings** of this one, because the demo
+  pulls them in through local path references:
 
-## Code of Conduct
+  ```
+  your-code-dir/
+    argus/
+    argus-api/
+    argus-ui/
+    argus-demo/   <- you are here
+  ```
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+> Why siblings? The demo consumes the packages from the local working copies (via
+> a composer `path` repository for the PHP packages and a vendored copy of the UI
+> source). This keeps the demo pinned to exactly what you are developing. To run
+> against the published releases instead, see [Using published packages](#using-published-packages).
 
-## Security Vulnerabilities
+## Quick start
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+```bash
+cp .env.example .env
+make up                # build + start every service
+make fresh             # migrate + seed the demo user
+make simulate          # dispatch ~240 demo jobs across 4 tenants
+```
 
-## License
+Then open the dashboard and sign in:
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+- URL: **https://localhost:8443/argus**
+- Email: `demo@argus.test`
+- Password: `password`
+
+> **Port note.** The defaults bind Traefik to host ports 80/443 and route
+> `argus.dev.test`. If another Traefik already owns those ports (common when you
+> run several Spin projects), this repo's `.env.example` ships alternate ports
+> (`HTTP_PORT=8090`, `HTTPS_PORT=8443`) and routes `localhost`, so you reach it at
+> `https://localhost:8443`. The TLS cert is the Server Side Up local CA (already
+> trusted if you use Spin). Edit those vars to use 80/443 and `argus.dev.test`.
+
+## What you'll see
+
+- **Search** (`/argus/search`) — every recorded job with a filter builder (tenant,
+  status, job class, attempts, time window, correlation key/value). Filter state
+  lives in the URL.
+- **Job history** (`/argus/jobs/:uuid`) — the full ordered transition timeline for
+  one job, including retries (released) before a terminal state.
+- **Failures** (`/argus/failures`) — failures grouped by exception fingerprint.
+  The demo produces three distinct fingerprints (payment declined, CRM
+  unavailable, avatar processing).
+- **Saved searches / alerts** (`/argus/saved-searches`) — create saved searches
+  and attach threshold alert rules.
+
+Horizon's own dashboard is at `https://localhost:8443/horizon`.
+
+## How the pieces are wired
+
+- **Storage**: `ARGUS_STORE=postgres`, buffered through Valkey 9 (`REDIS_HOST=valkey`).
+- **Queue**: `QUEUE_CONNECTION=redis`; Horizon supervises the demo queues
+  (`emails`, `reports`, `billing`, `crm`, `media`). Argus captures the standard
+  Laravel queue events the workers emit.
+- **Shipper**: the `argus-ship` container runs `php artisan argus:ship`, draining
+  buffered transitions into Postgres.
+- **Auth**: `ARGUS_API_GUARD=web` and the API routes carry the `web` middleware
+  group. The SPA is served same-origin (`/argus`) with the API (`/argus-api`), so
+  a logged-in session authorizes every request via its cookie + `X-XSRF-TOKEN`.
+  There is no token flow; the SPA rides the Laravel session.
+- **Tenant + correlation**: `App\Argus\DemoTenantResolver` reports each job's
+  tenant; the correlation whitelist captures `request_id`, `trace_id`, `tenant_id`.
+
+## Common tasks
+
+```bash
+make simulate JOBS=500   # more traffic
+make fresh               # wipe recorded jobs and re-seed
+make ui                  # rebuild the SPA into public/argus
+make logs                # tail all services
+make horizon             # Horizon status
+make down                # stop everything
+```
+
+The demo jobs live in `app/Jobs/Demo/`, the simulator in
+`app/Console/Commands/SimulateTraffic.php`.
+
+## Rebuilding the UI
+
+The SPA source is vendored under `ui/` (a copy of `argus-ui` with one change: an
+env-driven base path so it can be served under `/argus`). The built bundle in
+`public/argus/` is committed so the app renders on a fresh clone without a node
+step. To rebuild after changing `ui/`:
+
+```bash
+make ui
+```
+
+## Using published packages
+
+To run against the released packages instead of local siblings, replace the path
+repositories in `composer.json` with the Packagist versions and require them
+normally, then `composer update`. The UI can be installed from its published
+artifact rather than the vendored `ui/` copy.
+
+## Deploying to Laravel Cloud
+
+The Spin layout includes production Docker stages (`Dockerfile.php` `deploy`
+target) for a future Laravel Cloud / Swarm deploy. That path is not wired up yet.
