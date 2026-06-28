@@ -1,0 +1,133 @@
+services:
+  traefik:
+    ports:
+      - "80:80"
+      - "443:443"
+      - "8080:8080" # Traefik dashboard
+    networks:
+      development:
+        aliases:
+          - argus.dev.test
+    volumes:
+      # Read-only Docker socket so Traefik can watch container events.
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - ./.infrastructure/conf/traefik/dev/traefik.yml:/traefik.yml:ro
+      - ./.infrastructure/conf/traefik/dev/traefik-certs.yml:/traefik-certs.yml
+      - ./.infrastructure/conf/traefik/dev/certificates/:/certificates
+  php:
+    build:
+      target: development
+      args:
+        USER_ID: ${SPIN_USER_ID}
+        GROUP_ID: ${SPIN_GROUP_ID}
+      dockerfile: Dockerfile.php
+    stop_signal: SIGTERM
+    volumes:
+      - .:/var/www/html/
+    networks:
+      - development
+    depends_on:
+      postgres:
+        condition: service_healthy
+      valkey:
+        condition: service_healthy
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.laravel-web.rule=Host(`argus.dev.test`)"
+      - "traefik.http.routers.laravel-web.tls=true"
+      - "traefik.http.routers.laravel-web.entrypoints=websecure"
+      - "traefik.http.services.laravel-web.loadbalancer.server.port=8443"
+      - "traefik.http.services.laravel-web.loadbalancer.server.scheme=https"
+  # Builds the Argus React SPA into public/argus. One-shot by default; flip the
+  # command to `npm run dev` if you want Vite HMR (served same-origin via Laravel).
+  node:
+    build:
+      target: development
+      args:
+        USER_ID: ${SPIN_USER_ID}
+        GROUP_ID: ${SPIN_GROUP_ID}
+      dockerfile: Dockerfile.node
+    command: sh -c "npm ci && npm run build"
+    volumes:
+      - ./ui:/usr/src/app/
+    working_dir: /usr/src/app/
+    networks:
+      - development
+  schedule:
+    build:
+      target: development
+      args:
+        USER_ID: ${SPIN_USER_ID}
+        GROUP_ID: ${SPIN_GROUP_ID}
+      dockerfile: Dockerfile.php
+    volumes:
+      - .:/var/www/html/
+    networks:
+      - development
+    depends_on:
+      php:
+        condition: service_started
+      postgres:
+        condition: service_healthy
+  postgres:
+    networks:
+      - development
+    volumes:
+      - postgres_data:/var/lib/postgresql
+    environment:
+      POSTGRES_DB: ${DB_DATABASE:-argus}
+      POSTGRES_USER: ${DB_USERNAME:-argus}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-argus}
+    ports:
+      - target: 5432
+        published: 5432
+        mode: host
+  valkey:
+    command: "valkey-server --appendonly yes --requirepass ${REDIS_PASSWORD:-valkey}"
+    environment:
+      REDIS_PASSWORD: ${REDIS_PASSWORD:-valkey}
+    volumes:
+      - valkey_data:/data
+    networks:
+      - development
+  horizon:
+    build:
+      target: development
+      args:
+        USER_ID: ${SPIN_USER_ID}
+        GROUP_ID: ${SPIN_GROUP_ID}
+      dockerfile: Dockerfile.php
+    volumes:
+      - .:/var/www/html/
+    networks:
+      - development
+    depends_on:
+      valkey:
+        condition: service_healthy
+      php:
+        condition: service_started
+  argus-ship:
+    build:
+      target: development
+      args:
+        USER_ID: ${SPIN_USER_ID}
+        GROUP_ID: ${SPIN_GROUP_ID}
+      dockerfile: Dockerfile.php
+    volumes:
+      - .:/var/www/html/
+    networks:
+      - development
+    depends_on:
+      valkey:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+      php:
+        condition: service_started
+
+networks:
+  development:
+
+volumes:
+  postgres_data:
+  valkey_data:

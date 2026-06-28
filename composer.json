@@ -7,7 +7,10 @@
     "license": "MIT",
     "require": {
         "php": "^8.3",
+        "codysseydev/argus": "dev-main as 0.1.0",
+        "codysseydev/argus-api": "dev-main as 0.1.0",
         "laravel/framework": "^13.8",
+        "laravel/horizon": "*",
         "laravel/tinker": "^3.0"
     },
     "require-dev": {
@@ -81,6 +84,18 @@
             "php-http/discovery": true
         }
     },
+    "repositories": [
+        {
+            "type": "path",
+            "url": "../argus",
+            "options": { "symlink": false }
+        },
+        {
+            "type": "path",
+            "url": "../argus-api",
+            "options": { "symlink": false }
+        }
+    ],
     "minimum-stability": "stable",
     "prefer-stable": true
 }
